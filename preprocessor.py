@@ -22,4 +22,30 @@ def preprocess(filename):
 	print(out_data[1].shape)
 	return in_data, out_data
 
-preprocess(sys.argv[1])
+
+def set_split(input_data):
+	""" """
+	train_set = []
+	dev_set = []
+	test_set = []
+	test_set_percentage = .1
+	dev_set_percentage = .1
+	
+	test_set_size = int(test_set_percentage * len(input_data))
+	dev_set_size = int(dev_set_percentage * len(input_data))
+
+	for _ in range(test_set_size):
+		rand_int = np.random.randint(0, len(input_data))
+		test_set.append(input_data[rand_int])
+		del input_data[rand_int]
+	
+	for _ in range(dev_set_size):
+		rand_int = np.random.randint(0, len(input_data))
+		dev_set.append(input_data[rand_int])
+		del input_data[rand_int]
+	
+	for _ in range(len(input_data)):
+		rand_int = np.random.randint(0, len(input_data))
+		train_set.append(input_data[rand_int])
+		del input_data[rand_int]
+	return train_set, dev_set, test_set
