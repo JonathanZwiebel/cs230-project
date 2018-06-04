@@ -4,6 +4,7 @@
 import numpy as np
 import random
 from scipy.io import loadmat
+from random import shuffle
 
 # Takes in a formatted MATLAB file and returns a list of numpy arrays with input and output information
 def preprocess(filename, output_standardization_method, seq_length=None, seq_lookback_hard=None, seq_lookback_sample_range=None):
@@ -90,3 +91,38 @@ def set_split(input_data, percentages):
 
     assert len(input_data) == 0
     return train_set, dev_set, test_set
+
+def two_value_shuffle(first, second):
+    assert len(first) == len(second)
+    indices = range(len(first))
+    shuffle(indices)
+    first_cp = first.copy
+    second_cp = second.copy
+
+    for i in range(len(first)):
+        first_cp[i] = first[indices[i]]
+        second_cp[i] = second[indices[i]]
+
+    return first_cp, second_cp
+
+class Dataset:
+    def __init__(self, in_data, out_data):
+        self.in_data = in_data
+        self.out_data = out_data
+        self.current_index = 0
+        assert len(self.in_data) == len(self.out_data)
+
+    def shuffle_dataset(self):
+        np.random.shuffle(in_data)
+        np.random.shuffle(out_data)
+
+    def get_next_batch(self, batch_size):
+        if (self.current_index + 1) * batch_size > len(self.in_data):
+            self.reset_epoch()
+            return None
+
+    def reset_epoch(self):
+        self.current_index = 0
+
+def get_next_batch(train, test, batch_size, batch_index):
+    return
