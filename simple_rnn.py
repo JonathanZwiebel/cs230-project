@@ -33,7 +33,7 @@ optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
 train_op = optimizer.minimize(loss_op)
 print("Done making graph")
 
-X_all, Y_all = p.preprocess("D:\cs230\R_2016-01-27_P", "position_relative", seq_length=350, seq_lookback_hard=20, seq_lookback_sample_range=40)
+X_all, Y_all = p.preprocess("D:\cs230\R_2016-01-27_P", "position_relative", seq_length=800)
 data_split = p.set_split(X_all, Y_all, {"train": 0.8, "dev": 0.15, "test": 0.05})
 dataset = p.Dataset(data_split["train"][0], data_split["train"][1])
 

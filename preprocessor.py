@@ -7,7 +7,7 @@ from scipy.io import loadmat
 from random import shuffle
 
 # Takes in a formatted MATLAB file and returns a list of numpy arrays with input and output information
-def preprocess(filename, output_standardization_method, seq_length=None, seq_lookback_hard=None, seq_lookback_sample_range=None):
+def preprocess_old(filename, output_standardization_method, seq_length=None, seq_lookback_hard=None, seq_lookback_sample_range=None):
     file_in = loadmat(filename)
     raw_data = file_in['trials'][0]
     in_data = []
@@ -59,6 +59,50 @@ def preprocess(filename, output_standardization_method, seq_length=None, seq_loo
 
     print("Done down-sampling values")
     return np.asarray(in_data_proc), np.asarray(out_data_proc)
+
+
+def preprocess(filename, output_standardization_method, seq_length=None):
+    file_in = loadmat(filename)
+    raw_data = file_in['trials'][0]
+    in_data = []
+    out_data = []
+    print("Done converting .mat into py")
+
+    for m in range(len(raw_data)):
+        if output_standardization_method == "position_relative":
+            output_raw = raw_data[m][11]
+        else:
+            print("Bad output standardization method")
+            return None
+
+    out_data.append(output_raw)  # Already as np array
+    in_data.append(raw_data[m][5].toarray())  # Converts a sparse array into a numpy array
+
+    print("Done converting py into numpy arrays")
+
+    in_data_proc = []
+    out_data_proc = []
+
+    for m in range(len(out_data)):
+        assert len(in_data) == len(out_data)
+        if output_standardization_method == "position_relative":
+            starts = out_data[m][:, 0].copy()
+            for i in range(len(out_data[m][0])):
+                out_data[m][:, i] = out_data[m][:, i] - starts
+        else:
+            print("Bad output standarization method")
+            return None
+
+        in_data_proc.append(in_data[m][:, :seq_length])
+        out_data_proc.append(out_data[m][:, :seq_length])
+        in_data_proc[-1] = in_data_proc[-1].T
+        out_data_proc[-1] = out_data_proc[-1].T
+
+        assert len(in_data_proc[-1]) == seq_length and len(out_data_proc[-1]) == seq_length
+
+    print("Done down-sampling values")
+    return np.asarray(in_data_proc), np.asarray(out_data_proc)
+
 
 def two_value_shuffle(first, second):
     assert len(first) == len(second)
