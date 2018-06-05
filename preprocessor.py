@@ -38,11 +38,8 @@ def preprocess(filename, output_standardization_method, seq_length=None, seq_loo
             start_lookback = seq_lookback_hard + random.randint(0, seq_lookback_sample_range)
             seq_start = raw_data[m][1][0][0] - start_lookback
             if not seq_start >= 0:
-                print("Throwing for underflow subsample")
                 continue
-            print("m: " + str(m) + " | len(in_data): " + str(len(in_data)) + " | len(in_data[m]): " + str(len(in_data[m])))
             if not seq_start + seq_length - 1 < len(in_data[m][0]):
-                print("Throwing for overflow subsample")
                 continue
 
             if output_standardization_method == "position_relative":
@@ -55,12 +52,26 @@ def preprocess(filename, output_standardization_method, seq_length=None, seq_loo
 
             in_data_proc.append(in_data[m][:, seq_start:seq_start + seq_length])
             out_data_proc.append(out_data[m][:, seq_start:seq_start + seq_length])
+            in_data_proc[-1] = in_data_proc[-1].T
+            out_data_proc[-1] = out_data_proc[-1].T
 
-            assert len(in_data_proc[-1][0]) == seq_length and len(out_data_proc[-1][0]) == seq_length
+            assert len(in_data_proc[-1]) == seq_length and len(out_data_proc[-1]) == seq_length
 
     print("Done down-sampling values")
-    return in_data_proc, out_data_proc
+    return np.asarray(in_data_proc), np.asarray(out_data_proc)
 
+def two_value_shuffle(first, second):
+    assert len(first) == len(second)
+    indices = list(range(len(first)))
+    shuffle(indices)
+    first_cp = np.copy(first)
+    second_cp = np.copy(second)
+
+    for i in range(len(first)):
+        first_cp[i] = first[indices[i]]
+        second_cp[i] = second[indices[i]]
+
+    return first_cp, second_cp
 
 def set_split(X, Y, percentages):
     """
@@ -82,7 +93,7 @@ def set_split(X, Y, percentages):
     size_input = len(X)
     test_set_size = int(size_input * percentages["test"])
     dev_set_size = int(size_input * percentages["dev"])
-    
+
     X, Y = two_value_shuffle(X, Y)
 
     test_set_X = X[0:test_set_size]
@@ -93,26 +104,11 @@ def set_split(X, Y, percentages):
     dev_set_Y = Y[test_set_size:test_set_size + dev_set_size]
     train_set_Y = Y[test_set_size + dev_set_size:]
 
-
     sets["train"] = (train_set_X, train_set_Y)
     sets["dev"] = (dev_set_X, dev_set_Y)
     sets["test"] = (test_set_X, test_set_Y)
 
     return sets
-
-
-def two_value_shuffle(first, second):
-    assert len(first) == len(second)
-    indices = list(range(len(first)))
-    shuffle(indices)
-    first_cp = np.copy(first)
-    second_cp = np.copy(second)
-
-    for i in range(len(first)):
-        first_cp[i] = first[indices[i]]
-        second_cp[i] = second[indices[i]]
-
-    return first_cp, second_cp
 
 class Dataset:
     def __init__(self, in_data, out_data):
@@ -131,7 +127,7 @@ class Dataset:
 
         batch_x = self.in_data[batch_size * self.current_index: batch_size * (self.current_index + 1)]
         batch_y = self.out_data[batch_size * self.current_index: batch_size * (self.current_index + 1)]
-        self.current_index = self.current_index + batch_size
+        self.current_index = self.current_index + 1
         return batch_x, batch_y
 
     def reset_epoch(self):
