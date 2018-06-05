@@ -62,35 +62,44 @@ def preprocess(filename, output_standardization_method, seq_length=None, seq_loo
     return in_data_proc, out_data_proc
 
 
-# Splits the dataset (numpy array) into training, dev, and test datasets
-def set_split(input_data, percentages):
+def set_split(X, Y, percentages):
+    """
+    Splits the X and Y into the train, test, and dev set.
+
+    Arguments:
+    X -- numpy array of shape (batch_size, sequence_length, layer_size)
+    Y -- numpy array of shape (batch_size, sequence_length, output_size)
+    percentages -- dictionary of the percentages of the train, dev, and test set
+
+    Return:
+    sets -- dictionary of tuples of the train, dev, and test set for X and Y
+    """
     assert percentages["train"] + percentages["dev"] + percentages["test"] == 1
+    assert len(X) == len(Y)
 
-    train_set = []
-    dev_set = []
-    test_set = []
+    sets = {}
 
-    train_set_size = int(percentages["train"] * len(input_data))
-    dev_set_size = int(percentages["dev"] * len(input_data))
-    test_set_size = len(input_data) - train_set_size - dev_set_size
+    size_input = len(X)
+    test_set_size = int(size_input * percentages["test"])
+    dev_set_size = int(size_input * percentages["dev"])
+    
+    X, Y = two_value_shuffle(X, Y)
 
-    for _ in range(train_set_size):
-        rand_int = np.random.randint(0, len(input_data))
-        test_set.append(input_data[rand_int])
-        del input_data[rand_int]
+    test_set_X = X[0:test_set_size]
+    dev_set_X = X[test_set_size:test_set_size + dev_set_size]
+    train_set_X = X[test_set_size + dev_set_size:]
 
-    for _ in range(dev_set_size):
-        rand_int = np.random.randint(0, len(input_data))
-        dev_set.append(input_data[rand_int])
-        del input_data[rand_int]
+    test_set_Y = Y[0:test_set_size]
+    dev_set_Y = Y[test_set_size:test_set_size + dev_set_size]
+    train_set_Y = Y[test_set_size + dev_set_size:]
 
-    for _ in range(test_set_size):
-        rand_int = np.random.randint(0, len(input_data))
-        train_set.append(input_data[rand_int])
-        del input_data[rand_int]
 
-    assert len(input_data) == 0
-    return train_set, dev_set, test_set
+    sets["train"] = (train_set_X, train_set_Y)
+    sets["dev"] = (dev_set_X, dev_set_Y)
+    sets["test"] = (test_set_X, test_set_Y)
+
+    return sets
+
 
 def two_value_shuffle(first, second):
     assert len(first) == len(second)
