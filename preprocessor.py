@@ -94,10 +94,10 @@ def set_split(input_data, percentages):
 
 def two_value_shuffle(first, second):
     assert len(first) == len(second)
-    indices = range(len(first))
+    indices = list(range(len(first)))
     shuffle(indices)
-    first_cp = first.copy
-    second_cp = second.copy
+    first_cp = np.copy(first)
+    second_cp = np.copy(second)
 
     for i in range(len(first)):
         first_cp[i] = first[indices[i]]
@@ -113,16 +113,17 @@ class Dataset:
         assert len(self.in_data) == len(self.out_data)
 
     def shuffle_dataset(self):
-        np.random.shuffle(in_data)
-        np.random.shuffle(out_data)
+        self.in_data, self.out_data = two_value_shuffle(self.in_data, self.out_data)
 
     def get_next_batch(self, batch_size):
         if (self.current_index + 1) * batch_size > len(self.in_data):
             self.reset_epoch()
-            return None
+            return None, None
+
+        batch_x = self.in_data[batch_size * self.current_index: batch_size * (self.current_index + 1)]
+        batch_y = self.out_data[batch_size * self.current_index: batch_size * (self.current_index + 1)]
+        self.current_index = self.current_index + batch_size
+        return batch_x, batch_y
 
     def reset_epoch(self):
         self.current_index = 0
-
-def get_next_batch(train, test, batch_size, batch_index):
-    return
