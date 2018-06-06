@@ -124,6 +124,12 @@ class Dataset:
         self.in_data, self.out_data = two_value_shuffle(self.in_data, self.out_data)
 
     def get_next_batch(self, batch_size):
+        batch_x = self.in_data[:batch_size]
+        batch_y = self.out_data[:batch_size]
+        return batch_x, batch_y
+
+        # FORCE
+
         if (self.current_index + 1) * batch_size > len(self.in_data):
             self.reset_epoch()
             return None, None

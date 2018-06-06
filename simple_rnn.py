@@ -1,18 +1,16 @@
 import tensorflow as tf
 import preprocessor as p
 
-TRAINING_EPOCHS = 1000
-PRITNING_EPOCHS = 10
+TRAINING_EPOCHS = 100000
 
 LEARNING_RATE = 0.001
 
-BATCH_SIZE = 100
-SEQUENCE_LENGTH = 800
-HIDDEN_LAYER_SIZE = 150
+BATCH_SIZE = 1024
+SEQUENCE_LENGTH = 100
+HIDDEN_LAYER_SIZE = 200
 
 INPUT_SIZE = 192
 RNN_OUTPUT_SIZE = HIDDEN_LAYER_SIZE
-INTERMEDIATE_OUTPUT_SIZE = 25
 FINAL_OUTPUT_SIZE = 2
 
 
@@ -28,28 +26,37 @@ def simple_rnn(inputs):
 
 
 predicted_out = simple_rnn(X)
-loss_op = tf.reduce_mean(tf.losses.mean_squared_error(labels=tf.transpose(Y, perm=[1, 0, 2]), predictions=predicted_out))
+loss_op = tf.losses.mean_squared_error(labels=tf.transpose(Y, perm=[1, 0, 2]), predictions=predicted_out)
+tf.summary.scalar('loss', loss_op)
 optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
 train_op = optimizer.minimize(loss_op)
 print("Done making graph")
 
-X_all, Y_all = p.preprocess("D:\cs230\R_2016-01-27_P", "velocity", seq_length=800)
+X_all, Y_all = p.preprocess("D:\cs230\R_2016-01-27_P", "position_relative", seq_length=SEQUENCE_LENGTH)
 data_split = p.set_split(X_all, Y_all, {"train": 0.8, "dev": 0.15, "test": 0.05})
 dataset = p.Dataset(data_split["train"][0], data_split["train"][1])
+
+merged = tf.summary.merge_all()
 
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
     sess.run(init)
+    train_writer = tf.summary.FileWriter("tensorboard/run5", sess.graph)
 
+    batch = 1
     for step in range(TRAINING_EPOCHS):
         loss = -1
         while True:
             print("New batch")
             batch_x, batch_y = dataset.get_next_batch(BATCH_SIZE)
             if batch_x is None:
+                print("Epoch: " + str(step) + " | Loss: " + str(loss))
                 break
             assert batch_x.shape == (BATCH_SIZE, SEQUENCE_LENGTH, INPUT_SIZE)
             assert batch_y.shape == (BATCH_SIZE, SEQUENCE_LENGTH, FINAL_OUTPUT_SIZE)
             sess.run(train_op, feed_dict={X: batch_x, Y: batch_y})
-            loss = sess.run([loss_op], feed_dict={X: batch_x, Y: batch_y})
+            summary, loss = sess.run([merged, loss_op], feed_dict={X: batch_x, Y: batch_y})
+            train_writer.add_summary(summary, batch)
+            batch = batch + 1
             print("Epoch: " + str(step) + " | Loss: " + str(loss))
+            break
