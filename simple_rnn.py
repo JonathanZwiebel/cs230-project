@@ -47,7 +47,7 @@ merged = tf.summary.merge_all()
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
     sess.run(init)
-    train_writer = tf.summary.FileWriter("tensorboard/run11", sess.graph)
+    train_writer = tf.summary.FileWriter("tensorboard/run18", sess.graph)
 
     batch = 1
     for step in range(TRAINING_EPOCHS):
@@ -68,6 +68,8 @@ with tf.Session() as sess:
 
             # TODO: Move into batch kill loop for normal implementation
             if step % SAVING_EPOCHS == 0:
-                pred_filename = "outputs/run11/pred_epoch" + str(step)
-                truth_filename = "outputs/run11/truth_epoch" + str(step)
+                print("Saving Epochs")
+                predictions, true = sess.run([predicted_out, actual_Y], feed_dict={X: batch_x, Y: batch_y})
+                np.save("output/run18/pred_epoch" + str(step), predictions)
+                np.save("output/run18/true_epoch" + str(step), true)
             break
