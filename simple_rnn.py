@@ -1,7 +1,9 @@
 import tensorflow as tf
 import preprocessor as p
+import pandas as pd
 
 TRAINING_EPOCHS = 100000
+SAVING_EPOCHS = 50
 
 LEARNING_RATE = 0.00025
 
@@ -45,7 +47,7 @@ merged = tf.summary.merge_all()
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
     sess.run(init)
-    train_writer = tf.summary.FileWriter("tensorboard/run105", sess.graph)
+    train_writer = tf.summary.FileWriter("tensorboard/run11", sess.graph)
 
     batch = 1
     for step in range(TRAINING_EPOCHS):
@@ -63,4 +65,9 @@ with tf.Session() as sess:
             train_writer.add_summary(summary, batch)
             batch = batch + 1
             print("Epoch: " + str(step) + " | Loss: " + str(loss))
+
+            # TODO: Move into batch kill loop for normal implementation
+            if step % SAVING_EPOCHS == 0:
+                pred_filename = "outputs/run11/pred_epoch" + str(step)
+                truth_filename = "outputs/run11/truth_epoch" + str(step)
             break
