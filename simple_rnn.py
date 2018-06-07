@@ -1,18 +1,19 @@
 import tensorflow as tf
 import preprocessor as p
-import pandas as pd
+import numpy as np
 
 TRAINING_EPOCHS = 100000
-SAVING_EPOCHS = 50
+SAVING_EPOCHS = 15
 
-LEARNING_RATE = 0.00025
+LEARNING_RATE = 0.002
 
 BATCH_SIZE = 1024
-SEQUENCE_LENGTH = 100
-HIDDEN_LAYER_SIZE = 100
+SEQUENCE_LENGTH = 400
+HIDDEN_LAYER_SIZE = 80
 
 INPUT_SIZE = 192
 RNN_OUTPUT_SIZE = HIDDEN_LAYER_SIZE
+INTERMEDIATE_SIZE = 30
 FINAL_OUTPUT_SIZE = 2
 
 
@@ -22,12 +23,14 @@ Y = tf.placeholder(dtype=tf.float32, shape=[None, SEQUENCE_LENGTH, FINAL_OUTPUT_
 def simple_rnn(inputs):
     inputs = tf.unstack(inputs, SEQUENCE_LENGTH, 1)
     rnn_cell = tf.contrib.rnn.LSTMCell(HIDDEN_LAYER_SIZE, activation=tf.nn.tanh)
-    intermediate_cell = tf.contrib.rnn.OutputProjectionWrapper(rnn_cell, FINAL_OUTPUT_SIZE)
+    intermediate_cell = tf.contrib.rnn.OutputProjectionWrapper(rnn_cell, INTERMEDIATE_SIZE, activation=tf.nn.relu)
     rnn_out, hidden_state = tf.contrib.rnn.static_rnn(intermediate_cell, inputs, dtype=tf.float32)
-    return rnn_out
+    final_out = tf.contrib.layers.fully_connected(rnn_out, FINAL_OUTPUT_SIZE, activation_fn=None)
+    return final_out
 
 
 predicted_out = simple_rnn(X)
+tf.shape(predicted_out)
 actual_Y = tf.transpose(Y, perm=[1, 0, 2])
 loss_op = tf.losses.mean_squared_error(labels=actual_Y, predictions=predicted_out)
 tf.summary.histogram('Actual Y', actual_Y)
@@ -35,10 +38,12 @@ tf.summary.histogram('Predicted Y', predicted_out)
 tf.summary.histogram("Gradients", tf.gradients(loss_op, X))
 tf.summary.scalar('loss', loss_op)
 optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
-train_op = optimizer.minimize(loss_op)
+gvs = optimizer.compute_gradients(loss_op)
+capped_gvs = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in gvs]
+train_op = optimizer.apply_gradients(capped_gvs)
 print("Done making graph")
 
-X_all, Y_all = p.preprocess("/Users/robertross/Documents/CS230-Data/R_2016-01-27_P.mat", "position_relative", seq_length=SEQUENCE_LENGTH)
+X_all, Y_all = p.preprocess("D:\cs230\R_2016-01-27_p.mat", "position_relative", seq_length=SEQUENCE_LENGTH)
 data_split = p.set_split(X_all, Y_all, {"train": 0.8, "dev": 0.15, "test": 0.05})
 dataset = p.Dataset(data_split["train"][0], data_split["train"][1])
 
@@ -47,7 +52,7 @@ merged = tf.summary.merge_all()
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
     sess.run(init)
-    train_writer = tf.summary.FileWriter("tensorboard/run18", sess.graph)
+    train_writer = tf.summary.FileWriter("tensorboard/run22", sess.graph)
 
     batch = 1
     for step in range(TRAINING_EPOCHS):
@@ -70,6 +75,6 @@ with tf.Session() as sess:
             if step % SAVING_EPOCHS == 0:
                 print("Saving Epochs")
                 predictions, true = sess.run([predicted_out, actual_Y], feed_dict={X: batch_x, Y: batch_y})
-                np.save("output/run18/pred_epoch" + str(step), predictions)
-                np.save("output/run18/true_epoch" + str(step), true)
+                np.save("output/run22/pred_epoch" + str(step), predictions)
+                np.save("output/run22/true_epoch" + str(step), true)
             break
