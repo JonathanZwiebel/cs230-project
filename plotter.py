@@ -18,8 +18,10 @@ trues = []
 predictions = []
 
 for i in range(len(true_array)):
-    trues.append(true_array[i, search_example])
-    predictions.append(predicted_array[i, search_example])
+    if i % 10 == 0 or i == len(true_array) - 1:
+        trues.append(true_array[i, search_example])
+        predictions.append(predicted_array[i, search_example])
+
 
 trues = np.asarray(trues)
 predictions = np.asarray(predictions)
