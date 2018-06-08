@@ -1,3 +1,5 @@
 *.mat
 *pycache*
 tensorboard/
+rundata
+output/
