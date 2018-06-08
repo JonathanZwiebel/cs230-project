@@ -8,59 +8,71 @@ from random import shuffle
 from time import sleep
 
 
-def preprocess(filename, output_standardization_method, seq_length=None):
-    file_in = loadmat(filename)
-    raw_data = file_in['trials'][0]
-    in_data = []
-    out_data = []
-    print("Done converting .mat into py")
+def preprocess(files, output_standardization_method, seq_length=None, skip_length = None):
+    in_data_full = []
+    out_data_full = []
+    for filename in files:
+        file_in = loadmat(filename)
+        raw_data = file_in['trials'][0]
+        in_data = []
+        out_data = []
+        print("Done converting .mat into py")
 
-    for m in range(len(raw_data)):
-        if output_standardization_method == "position_relative":
-            output_raw = raw_data[m][11]
-        elif output_standardization_method == "velocity":
-            output_raw = raw_data[m][7]
-        elif output_standardization_method == "velocity_bin":
-            output_raw = raw_data[m][9]
+        for m in range(len(raw_data)):
+            if output_standardization_method == "position_relative":
+                output_raw = raw_data[m][11]
+            elif output_standardization_method == "velocity":
+                output_raw = raw_data[m][7]
+            elif output_standardization_method == "velocity_bin":
+                output_raw = raw_data[m][9]
+            else:
+                print("Bad output standardization method")
+                return None
+
+            out_data.append(output_raw)  # Already as np array
+            if output_standardization_method in ["position_relative", "velocity"]:
+                in_data.append(raw_data[m][5].toarray())  # Converts a sparse array into a numpy array
+            else:
+                in_data.append(raw_data[m][6].toarray())
+
+        print("Done converting py into numpy arrays")
+
+        in_data_proc = []
+        out_data_proc = []
+
+        for m in range(len(out_data)):
+            assert len(in_data) == len(out_data)
+            assert (seq_length + skip_length) < len(out_data)
+            if output_standardization_method == "position_relative":
+                starts = out_data[m][:, 0].copy()
+                for i in range(len(out_data[m][0])):
+                    out_data[m][:, i] = out_data[m][:, i] - starts
+            elif output_standardization_method == "velocity" or output_standardization_method == "velocity_bin":
+                pass
+            else:
+                print("Bad output standarization method")
+                return None
+
+            in_data_proc.append(in_data[m][:, skip_length:seq_length+skip_length])
+            out_data_proc.append(out_data[m][:, skip_length:seq_length+skip_length])
+            in_data_proc[-1] = in_data_proc[-1].T
+            out_data_proc[-1] = out_data_proc[-1].T
+
+            assert len(in_data_proc[-1]) == seq_length and len(out_data_proc[-1]) == seq_length
+        if len(in_data_full) == 0:
+            in_data_full = in_data_proc
+            out_data_full = out_data_proc
         else:
-            print("Bad output standardization method")
-            return None
-
-        out_data.append(output_raw)  # Already as np array
-        if output_standardization_method in ["position_relative", "velocity"]:
-            in_data.append(raw_data[m][5].toarray())  # Converts a sparse array into a numpy array
-        else:
-            in_data.append(raw_data[m][6].toarray())
-
-    print("Done converting py into numpy arrays")
-
-    in_data_proc = []
-    out_data_proc = []
-
-    for m in range(len(out_data)):
-        assert len(in_data) == len(out_data)
-        if output_standardization_method == "position_relative":
-            starts = out_data[m][:, 0].copy()
-            for i in range(len(out_data[m][0])):
-                out_data[m][:, i] = out_data[m][:, i] - starts
-        elif output_standardization_method == "velocity" or output_standardization_method == "velocity_bin":
-            pass
-        else:
-            print("Bad output standarization method")
-            return None
-
-        in_data_proc.append(in_data[m][:, :seq_length])
-        out_data_proc.append(out_data[m][:, :seq_length])
-        in_data_proc[-1] = in_data_proc[-1].T
-        out_data_proc[-1] = out_data_proc[-1].T
-
-        assert len(in_data_proc[-1]) == seq_length and len(out_data_proc[-1]) == seq_length
+            np.concatenate((in_data_full,in_data_proc), axis = 0)
+            np.concatenate((out_data_full,out_data_proc), axis = 0)
+        #in_data_full.append(in_data_proc)
+        #out_data_full.append(out_data_proc)
 
     print("Done down-sampling values")
-    print(in_data_proc[0].shape)
-    print(out_data_proc[0].shape)
+    print(in_data_full[0].shape)
+    print(out_data_full[0].shape)
     sleep(3)
-    return np.asarray(in_data_proc), np.asarray(out_data_proc)
+    return np.asarray(in_data_full), np.asarray(out_data_full)
 
 
 def two_value_shuffle(first, second):
