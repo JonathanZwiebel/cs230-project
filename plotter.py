@@ -17,12 +17,18 @@ print(predicted_array.shape)
 trues = []
 predictions = []
 
+counts = 0
+sum_squared_error = 0
+
 for i in range(len(true_array)):
-    if i % 10 == 0 or i == len(true_array) - 1:
+    sum_squared_error = sum_squared_error + (true_array[i, search_example, 0] - predicted_array[i, search_example, 0]) ** 2
+    sum_squared_error = sum_squared_error + (true_array[i, search_example, 1] - predicted_array[i, search_example, 1]) ** 2
+    counts = counts + 2
+    if i % 10 == 0 or i == range(len(true_array)):
         trues.append(true_array[i, search_example])
-        predictions.append(predicted_array[i, search_example])
+    predictions.append(predicted_array[i, search_example])
 
-
+print(sum_squared_error / counts)
 trues = np.asarray(trues)
 predictions = np.asarray(predictions)
 indices = range(len(trues))
